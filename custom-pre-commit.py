@@ -5,7 +5,7 @@ import os
 import shutil
 
 # Allowed file extensions (Modify as needed)
-allowed_extensions = {".sql"}  # Example: Only backup SQL and C# files
+allowed_extensions = {".sql"}  
 
 # Get staged files
 staged_files = subprocess.run(
@@ -17,7 +17,8 @@ if not staged_files:
     print("No files staged for commit. Skipping pre-commit check.")
     sys.exit(0)
 
-# Define backup folder
+# Define source and backup folder
+source_folder = "DB"
 backup_folder = "db_mods"
 os.makedirs(backup_folder, exist_ok=True)  # Ensure the folder exists
 
@@ -27,19 +28,26 @@ script_name = os.path.basename(__file__)
 for file in staged_files:
     if not os.path.exists(file):
         continue  # Skip deleted files
-        
+    
+    # Ensure the file is inside the DB folder
+    if not file.startswith(source_folder + "/"):
+        continue  # Ignore files outside of DB
+
     # Check file extension
     if not any(file.endswith(ext) for ext in allowed_extensions):
         continue  # Skip files that don’t match allowed extensions
 
-    # Preserve original folder structure in backup
-    destination = os.path.join(backup_folder, file)
+    # Compute relative path (strip "DB/")
+    relative_path = os.path.relpath(file, source_folder)
+
+    # Compute final destination inside db_mods
+    destination = os.path.join(backup_folder, relative_path)
 
     # Skip copying the script itself
     if os.path.basename(file) == script_name:
         continue
 
-    # Create necessary subdirectories
+    # Create necessary subdirectories in db_mods
     os.makedirs(os.path.dirname(destination), exist_ok=True)
 
     # Copy file, overwriting if it already exists
