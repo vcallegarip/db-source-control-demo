@@ -1,0 +1,1 @@
+select * from [dbo].[table_1]
