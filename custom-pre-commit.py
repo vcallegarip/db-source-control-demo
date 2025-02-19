@@ -16,10 +16,13 @@ if not staged_files:
 
 # Define backup folder for staged files
 backup_folder = ".backup_staged_files"
-os.makedirs(backup_folder, exist_ok=True)
+os.makedirs(backup_folder, exist_ok=True)  # Ensure the folder exists
 
-# File extensions to check (ignore .py to prevent self-blocking)
+# File extensions to check (adjust based on your needs)
 allowed_extensions = {".sql"}
+
+# Get script name to prevent self-copying
+script_name = os.path.basename(__file__)
 
 for file in staged_files:
     if not os.path.exists(file):
@@ -35,12 +38,17 @@ for file in staged_files:
             print(f"ERROR: 'TODO' found in {file}. Commit aborted!")
             sys.exit(1)
 
-# If all checks pass, copy staged files to backup folder
+# Copy staged files to backup folder (overwriting existing ones)
 for file in staged_files:
-    if os.path.exists(file):  
+    if os.path.exists(file):
         destination = os.path.join(backup_folder, os.path.basename(file))
-        shutil.copy(file, destination)
-        print(f"Backed up: {file} => {destination}")
+
+        # Skip copying the script itself
+        if os.path.basename(file) == script_name:
+            continue
+
+        shutil.copy(file, destination)  # Overwrites existing files
+        print(f"Backed up (overwritten): {file} --> {destination}")
 
 print("Pre-commit checks passed.")
 sys.exit(0)
