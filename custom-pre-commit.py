@@ -33,15 +33,8 @@ for file in staged_files:
     if not file.startswith(source_folder + "/"):
         continue  # Ignore files outside of DB
 
-    # Check file extension
-    if not any(file.endswith(ext) for ext in allowed_extensions):
-        continue  # Skip files that don’t match allowed extensions
-
-    # Compute relative path (strip "DB/")
-    relative_path = os.path.relpath(file, source_folder)
-
-    # Compute final destination inside db_mods
-    destination = os.path.join(backup_folder, relative_path)
+    # Preserve "DB/" structure inside db_mods
+    destination = os.path.join(backup_folder, file)
 
     # Skip copying the script itself
     if os.path.basename(file) == script_name:
