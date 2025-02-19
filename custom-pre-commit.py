@@ -15,7 +15,7 @@ if not staged_files:
     sys.exit(0)
 
 # Define backup folder for staged files
-backup_folder = "mods"
+backup_folder = "db_mods"
 os.makedirs(backup_folder, exist_ok=True)  # Ensure the folder exists
 
 # File extensions to check (adjust based on your needs)
