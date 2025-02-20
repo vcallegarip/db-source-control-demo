@@ -17,6 +17,6 @@ BEGIN
 	SET NOCOUNT ON;
 
     -- Insert statements for procedure here
-	SELECT 'Hello World' as [Column]
+	SELECT  'Victor' as [FirstName], 'Callegari' as [LastNamee]
 END
 GO
