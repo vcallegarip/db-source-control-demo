@@ -14,7 +14,7 @@ DB_PASSWORD = ""
 TABLE_NAME = "BuildHistory"
 
 # Allowed file extensions
-allowed_extensions = {".sql"}
+allowed_extensions = {".sql", ".SQL"}
 
 # Function to get the latest build version from SQL Server
 def get_latest_build_version():
