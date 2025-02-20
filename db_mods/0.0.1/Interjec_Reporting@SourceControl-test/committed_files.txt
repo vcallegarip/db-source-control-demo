@@ -1,1 +1,2 @@
 dbo.GetData (StoredProcedure)
+dbo.BuildHistory (Table)

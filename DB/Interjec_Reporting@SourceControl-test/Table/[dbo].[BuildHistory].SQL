@@ -14,5 +14,5 @@ CREATE TABLE [dbo].[BuildHistory](
 GO
 ALTER TABLE [dbo].[BuildHistory] ADD  DEFAULT (getutcdate()) FOR [UpdatedDate]
 GO
-ALTER TABLE [dbo].[BuildHistory] ADD  DEFAULT ((1)) FOR [WasDeployed]
+ALTER TABLE [dbo].[BuildHistory] ADD  DEFAULT ((0)) FOR [WasDeployed]
 GO
