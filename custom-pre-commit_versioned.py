@@ -17,18 +17,6 @@ ENABLE_PROD_COMPARISON = sys.argv[6].lower() == "true"  # Convert to Boolean
 # Allowed file extensions
 allowed_extensions = {".sql", ".SQL"}
 
-# Define SQL object type mappings
-OBJECT_TYPE_MAP = {
-    "StoredProcedures": "StoredProcedure",
-    "Tables": "Table",
-    "Views": "View",
-    "Roles": "Role",
-    "Rules": "Rule",
-    "Schemas": "Schema",
-    "UserDefinedFunctions": "UserDefinedFunction",
-    "Users": "User"
-}
-
 # Function to get the latest build version from SQL Server
 def get_latest_build_version():
     try:
@@ -93,8 +81,12 @@ for file in staged_files:
     if not file.startswith("DB/"):
         continue
 
-    # Extract relative path within DB folder
+    # Extract the object type from the path structure
     relative_path = os.path.relpath(file, "DB")  
+    path_parts = relative_path.split(os.sep)
+
+    # Determine object type from folder name
+    object_type = path_parts[0] if len(path_parts) > 1 else "Unknown"
 
     # Compute destination path inside the correct database folder
     destination = os.path.join(build_folder, relative_path)
@@ -106,17 +98,13 @@ for file in staged_files:
     shutil.copy(file, destination)
     print("Backed up:", file, "->", destination)
     
-    # Identify SQL object type from folder structure
-    object_type = "Unknown"
-    for key in OBJECT_TYPE_MAP:
-        if key in file:
-            object_type = OBJECT_TYPE_MAP[key]
-            break
+    # Extract object name (keeping brackets in db_mods)
+    object_name = os.path.basename(file).replace(".SQL", "").replace(".sql", "")
 
-    # Clean object name (remove brackets for PowerShell script compatibility)
-    object_name_clean = re.sub(r"[\[\]]", "", os.path.basename(file))
+    # Remove brackets **only** for committed_files.txt
+    object_name_clean = re.sub(r"[\[\]]", "", object_name)
 
-    # Append entry with type
+    # Append to committed files list with its detected type
     committed_files.append(f"{object_name_clean} ({object_type})")
 
 # Save committed files to a log file
