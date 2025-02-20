@@ -51,9 +51,9 @@ def get_next_build_version(latest_version):
 latest_build_version = get_latest_build_version()
 next_build_version = get_next_build_version(latest_build_version)
 
-# Define build folder (Corrected structure)
+# Define build folder (Fixed Structure)
 build_folder = os.path.join("db_mods", next_build_version)
-database_folder = os.path.join(build_folder, DB_NAME)  # Store database name inside the versioned folder
+database_folder = os.path.join(build_folder, DB_NAME)  # Store database name once
 os.makedirs(database_folder, exist_ok=True)
 
 # Get staged files
@@ -68,6 +68,18 @@ if not staged_files:
 
 # File to log committed files per database
 committed_files_log = os.path.join(database_folder, "committed_files.txt")
+
+# Object classification dictionary
+object_types = {
+    "StoredProcedures": "StoredProcedure",
+    "Tables": "Table",
+    "Views": "View",
+    "DatabaseRole": "DatabaseRole",
+    "Rules": "Rule",
+    "Schemas": "Schema",
+    "UserDefinedFunctions": "UserDefinedFunction",
+    "Users": "User",
+}
 
 # Preserve folder structure inside DB
 committed_files = []
@@ -86,19 +98,16 @@ for file in staged_files:
     relative_path = os.path.relpath(file, "DB")  
     path_parts = relative_path.split(os.sep)
 
-    # Determine object type correctly from the folder structure
-    if len(path_parts) > 1:
-        object_type = path_parts[0]  # First folder name after DB/ is the object type
-    else:
-        object_type = "Unknown"
+    # Determine object type correctly from folder structure
+    object_type = object_types.get(path_parts[0], "Unknown") if len(path_parts) > 1 else "Unknown"
 
-    # Compute correct destination path inside the database folder (Fix duplicate nesting)
+    # Compute correct destination path inside the database folder (Fixed duplicate nesting)
     destination = os.path.join(database_folder, relative_path)
 
     # Ensure subdirectories exist
     os.makedirs(os.path.dirname(destination), exist_ok=True)
 
-    # Copy file, overwriting if it already exists
+    # Copy file, keeping brackets in db_mods version
     shutil.copy(file, destination)
     print("Backed up:", file, "->", destination)
     
