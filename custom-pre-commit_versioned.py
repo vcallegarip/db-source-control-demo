@@ -17,6 +17,18 @@ ENABLE_PROD_COMPARISON = sys.argv[6].lower() == "true"  # Convert to Boolean
 # Allowed file extensions
 allowed_extensions = {".sql", ".SQL"}
 
+# Define SQL object type mappings
+OBJECT_TYPE_MAP = {
+    "StoredProcedures": "StoredProcedure",
+    "Tables": "Table",
+    "Views": "View",
+    "Roles": "Role",
+    "Rules": "Rule",
+    "Schemas": "Schema",
+    "UserDefinedFunctions": "UserDefinedFunction",
+    "Users": "User"
+}
+
 # Function to get the latest build version from SQL Server
 def get_latest_build_version():
     try:
@@ -94,9 +106,18 @@ for file in staged_files:
     shutil.copy(file, destination)
     print("Backed up:", file, "->", destination)
     
-    # Clean object name for committed_files.txt (remove brackets)
-    object_name_clean = re.sub(r"[\[\]]", "", os.path.basename(file))  # Remove [ ] from names
-    committed_files.append(object_name_clean)
+    # Identify SQL object type from folder structure
+    object_type = "Unknown"
+    for key in OBJECT_TYPE_MAP:
+        if key in file:
+            object_type = OBJECT_TYPE_MAP[key]
+            break
+
+    # Clean object name (remove brackets for PowerShell script compatibility)
+    object_name_clean = re.sub(r"[\[\]]", "", os.path.basename(file))
+
+    # Append entry with type
+    committed_files.append(f"{object_name_clean} ({object_type})")
 
 # Save committed files to a log file
 if committed_files:

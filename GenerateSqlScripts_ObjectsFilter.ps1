@@ -494,15 +494,36 @@ if ($ObjectSearchEnabled -eq $True)
 
     #Get count of SQL files to Process
     foreach ($objectToSearch in $ObjectList) {
-		AddToLog "$objectToSearch"
-		if($StoredProcedure)      {$Objects += $db.StoredProcedures     | Where-Object {($_.Name -like $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
-		if($View)                 {$Objects += $db.Views                | Where-Object {($_.Name -like $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
-		if($Table)                {$Objects += $db.Tables               | Where-Object {($_.Name -like $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
-		if($Role)                 {$Objects += $db.Roles                | Where-Object {($_.Name -like $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
-		if($Rule)                 {$Objects += $db.Rules                | Where-Object {($_.Name -like $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
-		if($Schema)               {$Objects += $db.Schemas              | Where-Object {($_.Name -like $objectToSearch)}}
-		if($UserDefinedFunction)  {$Objects += $db.UserDefinedFunctions | Where-Object {($_.Name -like $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
-		if($User)                 {$Objects += $db.Users                | Where-Object {($_.Name -like $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
+		# Extract object name and type
+        if ($line -match "(.+?) \((.+?)\)") {
+            $objectName = $matches[1]
+            $objectType = $matches[2]
+
+            # Log object being processed
+            AddToLog "Processing: $objectName ($objectType)"
+
+            # Search in the correct category
+            switch ($objectType) {
+                "StoredProcedure"       { if($StoredProcedure)      {$Objects += $db.StoredProcedures     | Where-Object {($_.Name -eq $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}} }
+                "Table"                 { if($View)                 {$Objects += $db.Views                | Where-Object {($_.Name -eq $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}} }
+                "View"                  { if($Table)                {$Objects += $db.Tables               | Where-Object {($_.Name -eq $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}} }
+                "Role"                  { if($Role)                 {$Objects += $db.Roles                | Where-Object {($_.Name -eq $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}} }
+                "Rule"                  { if($Rule)                 {$Objects += $db.Rules                | Where-Object {($_.Name -eq $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}} }
+                "Schema"                { if($Schema)               {$Objects += $db.Schemas              | Where-Object {($_.Name -eq $objectToSearch)}} }
+                "UserDefinedFunction"   { if($UserDefinedFunction)  {$Objects += $db.UserDefinedFunctions | Where-Object {($_.Name -eq $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}} }
+                "User"                  { if($User)                 {$Objects += $db.Users                | Where-Object {($_.Name -eq $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}} }
+                default                 { Write-Host "Unknown object type: $objectType" }
+            }
+    
+            # if($StoredProcedure)      {$Objects += $db.StoredProcedures     | Where-Object {($_.Name -like $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
+            # if($View)                 {$Objects += $db.Views                | Where-Object {($_.Name -like $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
+            # if($Table)                {$Objects += $db.Tables               | Where-Object {($_.Name -like $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
+            # if($Role)                 {$Objects += $db.Roles                | Where-Object {($_.Name -like $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
+            # if($Rule)                 {$Objects += $db.Rules                | Where-Object {($_.Name -like $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
+            # if($Schema)               {$Objects += $db.Schemas              | Where-Object {($_.Name -like $objectToSearch)}}
+            # if($UserDefinedFunction)  {$Objects += $db.UserDefinedFunctions | Where-Object {($_.Name -like $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
+            # if($User)                 {$Objects += $db.Users                | Where-Object {($_.Name -like $objectToSearch) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
+        }
     }
 }
 
