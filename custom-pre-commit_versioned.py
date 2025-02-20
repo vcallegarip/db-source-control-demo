@@ -8,7 +8,7 @@ import re
 
 # Database Connection Settings
 DB_SERVER = "INTERJECT"  # Example: "localhost\SQLEXPRESS"
-DB_NAME = "Interject-SourceControl-Demo"
+DB_NAME = "Database-SourceControl-Demo"
 DB_USER = ""
 DB_PASSWORD = ""
 TABLE_NAME = "BuildHistory"
