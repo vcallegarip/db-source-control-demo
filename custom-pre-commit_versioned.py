@@ -60,9 +60,19 @@ def get_next_build_version(latest_version):
 latest_build_version = get_latest_build_version()
 next_build_version = get_next_build_version(latest_build_version)
 
-# Create build folder for this version
-build_folder = os.path.join("db_mods", next_build_version, DB_NAME)
-os.makedirs(build_folder, exist_ok=True)
+# # Create build folder for this version
+# build_folder = os.path.join("db_mods", next_build_version, DB_NAME)
+# os.makedirs(build_folder, exist_ok=True)
+
+# Define main directories
+base_mods_folder = "db_mods"
+build_folder = os.path.join(base_mods_folder, next_build_version, DB_NAME)
+committed_changes_folder = os.path.join(build_folder, ".committed_changes")
+prod_snapshot_folder = os.path.join(build_folder, ".prod_snapshot")
+
+# Ensure main folders exist
+os.makedirs(committed_changes_folder, exist_ok=True)
+os.makedirs(prod_snapshot_folder, exist_ok=True)
 
 # Get staged files
 staged_files = subprocess.run(
@@ -92,11 +102,17 @@ for file in staged_files:
     if not file.startswith("DB/"):
         continue
 
-    # Extract relative path inside the DB/{DB_NAME} structure
-    relative_path = os.path.relpath(file, os.path.join("DB", DB_NAME))
+    # # Extract relative path inside the DB/{DB_NAME} structure
+    # relative_path = os.path.relpath(file, os.path.join("DB", DB_NAME))
 
-    # Compute destination path inside the correct database folder in db_mods
-    destination = os.path.join(build_folder, relative_path)
+    # Extract relative path inside the DB/{DB_NAME} structure
+    relative_path = os.path.relpath(file, f"DB/{DB_NAME}")
+
+    # # Compute destination path inside the correct database folder in db_mods
+    # destination = os.path.join(build_folder, relative_path)
+
+    # Compute destination path inside committed_changes folder
+    destination = os.path.join(committed_changes_folder, relative_path)
 
     # Ensure subdirectories exist
     os.makedirs(os.path.dirname(destination), exist_ok=True)

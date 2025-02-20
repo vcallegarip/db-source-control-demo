@@ -1,4 +1,0 @@
-dbo.GetData (StoredProcedure)
-dbo.BuildHistory (Table)
-dbo.GetData (StoredProcedure)
-dbo.BuildHistory (Table)
