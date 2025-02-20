@@ -495,9 +495,9 @@ if ($ObjectSearchEnabled -eq $True)
     #Get count of SQL files to Process
     foreach ($objectToSearch in $ObjectList) {
 		# Extract object name and type
-        if ($line -match "(.+?) \((.+?)\)") {
-            $objectName = $matches[1]
-            $objectType = $matches[2]
+        if ($line -match "\[(.+?)\] (.+?) \((.+?)\)") {
+            $objectName = $matches[2]  # Extracts the object name
+            $objectType = $matches[3]  # Extracts the object type
 
             # Log object being processed
             AddToLog "Processing: $objectName ($objectType)"

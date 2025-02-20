@@ -5,6 +5,9 @@ import os
 import shutil
 import pyodbc
 import re
+import datetime
+
+timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 # Database Connection Settings
 DB_SERVER = sys.argv[1]
@@ -114,7 +117,8 @@ for file in staged_files:
         object_type = "Unknown"  # If somehow misplaced
 
     # Append to committed files list
-    committed_files.append(f"{object_name} ({object_type})")
+    # committed_files.append(f"{object_name} ({object_type})")
+    committed_files.append(f"[{timestamp}] {object_name} ({object_type})")
 
 # Save committed files to a log file
 if committed_files:
