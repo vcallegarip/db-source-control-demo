@@ -94,8 +94,9 @@ for file in staged_files:
     shutil.copy(file, destination)
     print("Backed up:", file, "->", destination)
     
-    # Add to committed files list
-    committed_files.append(relative_path)
+    # Clean object name for committed_files.txt (remove brackets)
+    object_name_clean = re.sub(r"[\[\]]", "", os.path.basename(file))  # Remove [ ] from names
+    committed_files.append(object_name_clean)
 
 # Save committed files to a log file
 if committed_files:

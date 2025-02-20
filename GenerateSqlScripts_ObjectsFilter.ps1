@@ -468,17 +468,17 @@ $SMOserver.SetDefaultInitFields($typ, "Name", "IsSystemObject")
 
 $Objects = @() # empty array
 
-if ($ObjectSearchEnabled -ne $True)
-{
-    if($StoredProcedure)      {$Objects += $db.StoredProcedures     | Where-Object {!($_.IsSystemObject) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
-    if($View)                 {$Objects += $db.Views                | Where-Object {!($_.IsSystemObject) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
-    if($Table)                {$Objects += $db.Tables               | Where-Object {!($_.IsSystemObject) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
-    if($Role)                 {$Objects += $db.Roles                | Where-Object {!($_.IsSystemObject) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
-    if($Rule)                 {$Objects += $db.Rules                | Where-Object {!($_.IsSystemObject) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
-    if($Schema)               {$Objects += $db.Schemas              | Where-Object {!($_.IsSystemObject) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
-    if($UserDefinedFunction)  {$Objects += $db.UserDefinedFunctions | Where-Object {!($_.IsSystemObject) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
-    if($User)                 {$Objects += $db.Users                | Where-Object {!($_.IsSystemObject) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
-}
+# if ($ObjectSearchEnabled -ne $True)
+# {
+#     if($StoredProcedure)      {$Objects += $db.StoredProcedures     | Where-Object {!($_.IsSystemObject) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
+#     if($View)                 {$Objects += $db.Views                | Where-Object {!($_.IsSystemObject) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
+#     if($Table)                {$Objects += $db.Tables               | Where-Object {!($_.IsSystemObject) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
+#     if($Role)                 {$Objects += $db.Roles                | Where-Object {!($_.IsSystemObject) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
+#     if($Rule)                 {$Objects += $db.Rules                | Where-Object {!($_.IsSystemObject) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
+#     if($Schema)               {$Objects += $db.Schemas              | Where-Object {!($_.IsSystemObject) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
+#     if($UserDefinedFunction)  {$Objects += $db.UserDefinedFunctions | Where-Object {!($_.IsSystemObject) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
+#     if($User)                 {$Objects += $db.Users                | Where-Object {!($_.IsSystemObject) -and ($_.DateLastModified -ge $ModifiedDate -or $ModifiedDate -eq $null)}}
+# }
 
 if ($ObjectSearchEnabled -eq $True)
 {
