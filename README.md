@@ -14,5 +14,6 @@ create table dbo.BuildHistory
 	,BuildVersion VARCHAR(10)
 	,BuildLog NVARCHAR(MAX)
 	,UpdatedDate DATETIME DEFAULT(GETUTCDATE())
+	,WasDeployed BIT DEFAULT(0)
 )
 ```

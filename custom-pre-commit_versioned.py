@@ -20,12 +20,21 @@ allowed_extensions = {".sql", ".SQL"}
 # Function to get the latest build version from SQL Server
 def get_latest_build_version():
     try:
-        conn = pyodbc.connect(
-            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-            f"SERVER={DB_SERVER};"
-            f"DATABASE={DB_NAME};"
-            f"Trusted_Connection=yes;"
-        )
+        if DB_USER and DB_PASSWORD:
+            conn = pyodbc.connect(
+                f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+                f"SERVER={DB_SERVER};"
+                f"DATABASE={DB_NAME};"
+                f"UID={DB_USER};"
+                f"PWD={DB_PASSWORD};"
+            )
+        else:
+            conn = (
+                f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+                f"SERVER={DB_SERVER};"
+                f"DATABASE={DB_NAME};"
+                f"Trusted_Connection=yes;"
+            )
         cursor = conn.cursor()
         cursor.execute(f"SELECT TOP 1 BuildVersion FROM {TABLE_NAME} ORDER BY BuildVersion DESC;")
         row = cursor.fetchone()
