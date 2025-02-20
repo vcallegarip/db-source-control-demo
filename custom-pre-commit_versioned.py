@@ -118,8 +118,8 @@ for file in staged_files:
 
 # Save committed files to a log file
 if committed_files:
-    with open(committed_files_log, "w") as log_file:
-        log_file.write("\n".join(committed_files))
+    with open(committed_files_log, "a") as log_file:  # Use "a" for append mode
+        log_file.write("\n".join(committed_files) + "\n")
     print(f"Committed files logged in: {committed_files_log}")
 
 print("Pre-commit checks passed.")
