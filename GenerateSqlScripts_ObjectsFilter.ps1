@@ -464,8 +464,6 @@ $SMOserver.SetDefaultInitFields($typ, "Name", "IsSystemObject")
 
 "Looking up database objects..."
 
-"===>>>>" + $ObjectSearchEnabled
-
 $Objects = @() # empty array
 
 # if ($ObjectSearchEnabled -ne $True)
