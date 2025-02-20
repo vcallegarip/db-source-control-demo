@@ -51,9 +51,10 @@ def get_next_build_version(latest_version):
 latest_build_version = get_latest_build_version()
 next_build_version = get_next_build_version(latest_build_version)
 
-# Allow manually created versions (don't enforce sequence)
-build_folder = os.path.join("db_mods", next_build_version, DB_NAME)
-os.makedirs(build_folder, exist_ok=True)
+# Define build folder (Corrected structure)
+build_folder = os.path.join("db_mods", next_build_version)
+database_folder = os.path.join(build_folder, DB_NAME)  # Store database name inside the versioned folder
+os.makedirs(database_folder, exist_ok=True)
 
 # Get staged files
 staged_files = subprocess.run(
@@ -66,7 +67,7 @@ if not staged_files:
     sys.exit(0)
 
 # File to log committed files per database
-committed_files_log = os.path.join(build_folder, "committed_files.txt")
+committed_files_log = os.path.join(database_folder, "committed_files.txt")
 
 # Preserve folder structure inside DB
 committed_files = []
@@ -81,15 +82,18 @@ for file in staged_files:
     if not file.startswith("DB/"):
         continue
 
-    # Extract the object type from the path structure
+    # Extract relative path within DB folder
     relative_path = os.path.relpath(file, "DB")  
     path_parts = relative_path.split(os.sep)
 
-    # Determine object type from folder name
-    object_type = path_parts[0] if len(path_parts) > 1 else "Unknown"
+    # Determine object type correctly from the folder structure
+    if len(path_parts) > 1:
+        object_type = path_parts[0]  # First folder name after DB/ is the object type
+    else:
+        object_type = "Unknown"
 
-    # Compute destination path inside the correct database folder
-    destination = os.path.join(build_folder, relative_path)
+    # Compute correct destination path inside the database folder (Fix duplicate nesting)
+    destination = os.path.join(database_folder, relative_path)
 
     # Ensure subdirectories exist
     os.makedirs(os.path.dirname(destination), exist_ok=True)
@@ -104,7 +108,7 @@ for file in staged_files:
     # Remove brackets **only** for committed_files.txt
     object_name_clean = re.sub(r"[\[\]]", "", object_name)
 
-    # Append to committed files list with its detected type
+    # Append to committed files list with **correct object type**
     committed_files.append(f"{object_name_clean} ({object_type})")
 
 # Save committed files to a log file
