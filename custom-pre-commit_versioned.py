@@ -14,8 +14,6 @@ DB_PASSWORD = sys.argv[4]
 TABLE_NAME = sys.argv[5]
 ENABLE_PROD_COMPARISON = sys.argv[6].lower() == "true"  # Convert to Boolean
 
-# TODO: Add log files into each database folder to track changes then script out PROD
-
 # Allowed file extensions
 allowed_extensions = {".sql", ".SQL"}
 
@@ -54,7 +52,7 @@ latest_build_version = get_latest_build_version()
 next_build_version = get_next_build_version(latest_build_version)
 
 # Allow manually created versions (don't enforce sequence)
-build_folder = os.path.join("db_mods", next_build_version)
+build_folder = os.path.join("db_mods", next_build_version, DB_NAME)
 os.makedirs(build_folder, exist_ok=True)
 
 # Get staged files
@@ -67,10 +65,11 @@ if not staged_files:
     print("No files staged for commit. Skipping pre-commit check.")
     sys.exit(0)
 
-# Dictionary to store committed files per database
-db_committed_files = {}
+# File to log committed files per database
+committed_files_log = os.path.join(build_folder, "committed_files.txt")
 
 # Preserve folder structure inside DB
+committed_files = []
 for file in staged_files:
     if not os.path.exists(file):
         continue  # Skip deleted files
@@ -82,38 +81,27 @@ for file in staged_files:
     if not file.startswith("DB/"):
         continue
 
-    # Extract database name from the file path (assuming `DB/DatabaseName/...`)
-    parts = file.split(os.sep)
-    if len(parts) < 2:
-        print(f"Skipping file {file} due to incorrect path structure.")
-        continue
+    # Extract relative path within DB folder
+    relative_path = os.path.relpath(file, "DB")  
 
-    db_name = parts[1]  # Extract database name
-    db_folder = os.path.join(build_folder, db_name)
-    os.makedirs(db_folder, exist_ok=True)  # Ensure DB folder exists
+    # Compute destination path inside the correct database folder
+    destination = os.path.join(build_folder, relative_path)
 
-    # Compute destination path inside build folder
-    destination = os.path.join(db_folder, os.path.relpath(file, start="DB"))
-    
-    # Create necessary subdirectories
+    # Ensure subdirectories exist
     os.makedirs(os.path.dirname(destination), exist_ok=True)
 
     # Copy file, overwriting if it already exists
     shutil.copy(file, destination)
     print("Backed up:", file, "->", destination)
+    
+    # Add to committed files list
+    committed_files.append(relative_path)
 
-    # Store committed files per database
-    if db_name not in db_committed_files:
-        db_committed_files[db_name] = []
-    db_committed_files[db_name].append(file)
-
-# Save committed files per database inside versioned folder
-for db_name, files in db_committed_files.items():
-    committed_files_path = os.path.join(build_folder, db_name, "committed_files.txt")
-    with open(committed_files_path, "w") as f:
-        for file in files:
-            f.write(file + "\n")
-    print(f"Committed files saved for {db_name}: {committed_files_path}")
+# Save committed files to a log file
+if committed_files:
+    with open(committed_files_log, "w") as log_file:
+        log_file.write("\n".join(committed_files))
+    print(f"Committed files logged in: {committed_files_log}")
 
 print("Pre-commit checks passed.")
 sys.exit(0)
