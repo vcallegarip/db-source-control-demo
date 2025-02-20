@@ -12,7 +12,7 @@ DB_NAME = sys.argv[2]
 DB_USER = sys.argv[3]
 DB_PASSWORD = sys.argv[4]
 TABLE_NAME = sys.argv[5]
-ENABLE_PROD_COMPARISON = sys.argv[6].lower() == "true"  # Convert to Boolean
+ENABLE_PROD_COMPARISON = sys.argv[6].lower() == "true"
 
 # Allowed file extensions
 allowed_extensions = {".sql", ".SQL"}
@@ -31,10 +31,7 @@ def get_latest_build_version():
         row = cursor.fetchone()
         conn.close()
 
-        if row:
-            return row[0]  # Return the latest version number as a string
-        else:
-            return "0.0.0"  # Default if no builds exist
+        return row[0] if row else "0.0.0"
     except Exception as e:
         print(f"Error connecting to database: {e}")
         sys.exit(1)
@@ -44,17 +41,16 @@ def get_next_build_version(latest_version):
     match = re.match(r"(\d+)\.(\d+)\.(\d+)", latest_version)
     if match:
         major, minor, patch = map(int, match.groups())
-        return f"{major}.{minor}.{patch + 1}"  # Increment the patch number
+        return f"{major}.{minor}.{patch + 1}"
     return "0.0.1"
 
-# Get the latest build version from the database
+# Get latest and next build versions
 latest_build_version = get_latest_build_version()
 next_build_version = get_next_build_version(latest_build_version)
 
-# Define build folder (Fixed Structure)
-build_folder = os.path.join("db_mods", next_build_version)
-database_folder = os.path.join(build_folder, DB_NAME)  # Store database name once
-os.makedirs(database_folder, exist_ok=True)
+# Create build folder for this version
+build_folder = os.path.join("db_mods", next_build_version, DB_NAME)
+os.makedirs(build_folder, exist_ok=True)
 
 # Get staged files
 staged_files = subprocess.run(
@@ -67,58 +63,49 @@ if not staged_files:
     sys.exit(0)
 
 # File to log committed files per database
-committed_files_log = os.path.join(database_folder, "committed_files.txt")
+committed_files_log = os.path.join(build_folder, "committed_files.txt")
 
-# Object classification dictionary
-object_types = {
-    "StoredProcedures": "StoredProcedure",
-    "Tables": "Table",
-    "Views": "View",
-    "DatabaseRole": "DatabaseRole",
-    "Rules": "Rule",
-    "Schemas": "Schema",
-    "UserDefinedFunctions": "UserDefinedFunction",
-    "Users": "User",
-}
+# Track committed files (without brackets) with their object type
+committed_files = []
 
 # Preserve folder structure inside DB
-committed_files = []
 for file in staged_files:
     if not os.path.exists(file):
         continue  # Skip deleted files
-    
+
     if not any(file.endswith(ext) for ext in allowed_extensions):
         continue  # Skip files that don’t match allowed extensions
 
-    # Ensure it belongs inside DB folder
+    # Ensure the file is inside the DB folder
     if not file.startswith("DB/"):
         continue
 
-    # Extract relative path within DB folder
-    relative_path = os.path.relpath(file, "DB")  
-    path_parts = relative_path.split(os.sep)
+    # Extract relative path inside the DB/{DB_NAME} structure
+    relative_path = os.path.relpath(file, os.path.join("DB", DB_NAME))
 
-    # Determine object type correctly from folder structure
-    object_type = object_types.get(path_parts[0], "Unknown") if len(path_parts) > 1 else "Unknown"
-
-    # Compute correct destination path inside the database folder (Fixed duplicate nesting)
-    destination = os.path.join(database_folder, relative_path)
+    # Compute destination path inside the correct database folder in db_mods
+    destination = os.path.join(build_folder, relative_path)
 
     # Ensure subdirectories exist
     os.makedirs(os.path.dirname(destination), exist_ok=True)
 
-    # Copy file, keeping brackets in db_mods version
+    # Copy file, overwriting if it already exists
     shutil.copy(file, destination)
     print("Backed up:", file, "->", destination)
-    
-    # Extract object name (keeping brackets in db_mods)
-    object_name = os.path.basename(file).replace(".SQL", "").replace(".sql", "")
 
-    # Remove brackets **only** for committed_files.txt
-    object_name_clean = re.sub(r"[\[\]]", "", object_name)
+    # Extract object name without brackets
+    object_name = os.path.splitext(os.path.basename(file))[0]  # Remove .sql extension
+    object_name = object_name.replace("[", "").replace("]", "")  # Remove brackets
 
-    # Append to committed files list with **correct object type**
-    committed_files.append(f"{object_name_clean} ({object_type})")
+    # Extract object type from folder structure
+    path_parts = relative_path.split(os.sep)
+    if len(path_parts) > 1:
+        object_type = path_parts[0]  # The folder name, e.g., "StoredProcedures"
+    else:
+        object_type = "Unknown"  # If somehow misplaced
+
+    # Append to committed files list
+    committed_files.append(f"{object_name} ({object_type})")
 
 # Save committed files to a log file
 if committed_files:
