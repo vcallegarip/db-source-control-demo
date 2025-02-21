@@ -11,55 +11,33 @@ timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 # Database Connection Settings
 DB_SERVER = sys.argv[1]
-DB_USER = sys.argv[2]
-DB_PASSWORD = sys.argv[3]
-DB_HISTORY_TABLE = sys.argv[4]
-ENABLE_PROD_SNAPSHOT = sys.argv[5].lower() == "true"
+DB_NAME = sys.argv[2]
+DB_USER = sys.argv[3]
+DB_PASSWORD = sys.argv[4]
+DB_HISTORY_TABLE = sys.argv[5]
+ENABLE_PROD_SNAPSHOT = sys.argv[6].lower() == "true"
 
 # Allowed file extensions
 allowed_extensions = {".sql", ".SQL"}
 
-# Get staged files
-staged_files = subprocess.run(
-    ["git", "diff", "--name-only", "--cached"],
-    capture_output=True, text=True
-).stdout.splitlines()
-
-if not staged_files:
-    print("No files staged for commit. Skipping pre-commit check.")
-    sys.exit(0)
-
-# Extract database names from staged files
-db_names = set()
-for file in staged_files:
-    parts = file.split(os.sep)
-    if len(parts) > 1:
-        db_names.add(parts[1])  # Extract DB name (folder after "DB/")
-
-# Ensure only one database is detected
-if len(db_names) > 1:
-    print(f"Error: Multiple databases detected in staged files: {db_names}")
-    sys.exit(1)
-
-DB_NAME = next(iter(db_names))  # Get the single detected database
-print(f"Detected Database Name: {DB_NAME}")
-
 # Function to get the latest build version from SQL Server
 def get_latest_build_version():
     try:
-        conn_str = (
-            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-            f"SERVER={DB_SERVER};"
-            f"DATABASE={DB_NAME};"
-            f"UID={DB_USER};PWD={DB_PASSWORD};"
-            if DB_USER and DB_PASSWORD else
-            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-            f"SERVER={DB_SERVER};"
-            f"DATABASE={DB_NAME};"
-            f"Trusted_Connection=yes;"
-        )
-        
-        conn = pyodbc.connect(conn_str)
+        if DB_USER and DB_PASSWORD:
+            conn = pyodbc.connect(
+                f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+                f"SERVER={DB_SERVER};"
+                f"DATABASE={DB_NAME};"
+                f"UID={DB_USER};"
+                f"PWD={DB_PASSWORD};"
+            )
+        else:
+            conn = (
+                f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+                f"SERVER={DB_SERVER};"
+                f"DATABASE={DB_NAME};"
+                f"Trusted_Connection=yes;"
+            )
         cursor = conn.cursor()
         cursor.execute(f"SELECT TOP 1 BuildVersion FROM {DB_HISTORY_TABLE} ORDER BY BuildVersion DESC;")
         row = cursor.fetchone()
@@ -92,13 +70,23 @@ prod_snapshot_folder = os.path.join(build_folder, ".prod_snapshot")
 os.makedirs(committed_changes_folder, exist_ok=True)
 os.makedirs(prod_snapshot_folder, exist_ok=True)
 
+# Get staged files
+staged_files = subprocess.run(
+    ["git", "diff", "--name-only", "--cached"],
+    capture_output=True, text=True
+).stdout.splitlines()
+
+if not staged_files:
+    print("No files staged for commit. Skipping pre-commit check.")
+    sys.exit(0)
+
 # File to log committed files per database
 committed_files_log = os.path.join(build_folder, "committed_files.txt")
 
 # Track committed files (without brackets) with their object type
 committed_files = []
 
-# Process each staged file
+# Preserve folder structure inside DB
 for file in staged_files:
     if not os.path.exists(file):
         continue  # Skip deleted files
@@ -106,12 +94,18 @@ for file in staged_files:
     if not any(file.endswith(ext) for ext in allowed_extensions):
         continue  # Skip files that don’t match allowed extensions
 
-    # Ensure the file is inside the DB/{DB_NAME} folder
-    if not file.startswith(f"DB/{DB_NAME}/"):
+    # Ensure the file is inside the DB folder
+    if not file.startswith("DB/"):
         continue
 
-    # Extract relative path inside DB/{DB_NAME} structure
+    # # Extract relative path inside the DB/{DB_NAME} structure
+    # relative_path = os.path.relpath(file, os.path.join("DB", DB_NAME))
+
+    # Extract relative path inside the DB/{DB_NAME} structure
     relative_path = os.path.relpath(file, f"DB/{DB_NAME}")
+
+    # # Compute destination path inside the correct database folder in db_mods
+    # destination = os.path.join(build_folder, relative_path)
 
     # Compute destination path inside committed_changes folder
     destination = os.path.join(committed_changes_folder, relative_path)
@@ -129,18 +123,34 @@ for file in staged_files:
 
     # Extract object type from folder structure
     path_parts = relative_path.split(os.sep)
-    object_type = path_parts[0] if len(path_parts) > 1 else "Unknown"
+    if len(path_parts) > 1:
+        object_type = path_parts[0]  # The folder name, e.g., "StoredProcedures"
+    else:
+        object_type = "Unknown"  # If somehow misplaced
 
-    # Append to committed files list with timestamp
+    # Append to committed files list
+    # committed_files.append(f"{object_name} ({object_type})")
     committed_files.append(f"[{timestamp}] {object_name} ({object_type})")
 
 # Save committed files to a log file
 if committed_files:
     with open(committed_files_log, "a", encoding="utf-8") as log_file:  # Append mode
         for file in committed_files:
-            log_file.write(file + "\n")  # Ensure proper line breaks
+            log_file.write(file + "\n")  # Explicitly adding newline character
 
     print(f"Committed files logged in: {committed_files_log}")
 
 print("Pre-commit checks passed.")
+
+if ENABLE_PROD_SNAPSHOT:
+
+    PROD_DB_SERVER = os.getenv("PROD_DB_SERVER")  # Get server name from environment
+    PROD_DB_NAME = os.getenv("PROD_DB_NAME")  # Get password from environment
+    PROD_DB_USER = os.getenv("PROD_DB_USER")  # Get username from environment
+    PROD_DB_PASSWORD = os.getenv("PROD_DB_PASSWORD")  # Get password from environment
+
+    if not DB_USER or not DB_PASSWORD:
+        print("Error: Database credentials not set. Please export DB_USER and DB_PASSWORD.")
+        sys.exit(1)
+
 sys.exit(0)
