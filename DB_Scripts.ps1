@@ -8,8 +8,7 @@ Exit ## safety switch
 
 #### TEST
 
-powershell.exe -File `
-    ".\GenerateSqlScripts.ps1" `
+powershell.exe -File ` ".\GenerateSqlScripts.ps1" `
     "localhost,1407" `
     "Interject_Reporting@SourceControl-test" `
     "Interject_Reporting@SourceControl-test" `

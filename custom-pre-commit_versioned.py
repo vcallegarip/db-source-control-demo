@@ -36,6 +36,13 @@ for file in staged_files:
     if len(parts) > 1:
         db_names.add(parts[1])  # Extract DB name (folder after "DB/")
 
+print(db_names)
+
+# Ensure a database name was detected
+if not db_names:
+    print("Error: No database name detected in staged files. Ensure files follow the structure 'DB/DatabaseName/...'.")
+    sys.exit(1)
+
 # Ensure only one database is detected
 if len(db_names) > 1:
     print(f"Error: Multiple databases detected in staged files: {db_names}")
