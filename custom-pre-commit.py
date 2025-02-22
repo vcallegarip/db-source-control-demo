@@ -42,7 +42,7 @@ for file in staged_files:
 
 # Allow commit to continue if no valid database files were found
 if not db_files_map:
-    print("No valid database files detected in staged files. Proceeding with commit.")
+    print("No files detected in staged files. Proceeding with commit.")
     sys.exit(0)  # Exit successfully without blocking the commit
 
 if not db_files_map:
