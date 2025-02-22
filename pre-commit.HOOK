@@ -1,0 +1,28 @@
+#!/bin/sh
+
+DB_SERVER="~~~enter-your-db-server~~~"
+DB_USER="~~~enter-your-db-user~~~"
+DB_PASSWORD="~~~enter-your-db-password~~~"
+DB_HISTORY_TABLE="BuildHistory" # Pass name of the history table
+
+# ***** IMPORTANT: Use Environment Variable ******
+#TODO: Pass name of the PROD db
+ENABLE_PROD_SNAPSHOT="true"
+
+python custom-pre-commit.py \
+			"$DB_SERVER" \
+			"$DB_USER" \
+			"$DB_PASSWORD"  \
+			"$DB_HISTORY_TABLE" \
+			"$ENABLE_PROD_SNAPSHOT"
+
+# Capture the exit code
+EXIT_CODE=$?
+
+# If Python script fails, prevent commit
+if [ $EXIT_CODE -ne 0 ]; then
+    echo "Pre-commit hook failed. Aborting commit."
+    exit 1
+fi
+
+#TODO: Only run the custom-pre-commit.py if the commit acts on the repository you wanted to re ran.
