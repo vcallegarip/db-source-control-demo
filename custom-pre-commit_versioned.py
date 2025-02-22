@@ -29,40 +29,35 @@ if not staged_files:
     print("No files staged for commit. Skipping pre-commit check.")
     sys.exit(0)
 
-# Extract database names from staged files
-db_names = set()
+# Extract unique database names and group files by database
+db_files_map = {}
+
 for file in staged_files:
-    parts = file.split(os.sep)
-    if len(parts) > 1:
-        db_names.add(parts[1])  # Extract DB name (folder after "DB/")
+    parts = file.split("/")
+    if len(parts) > 1 and parts[0] == "DB":  # Ensure it's inside the DB/ directory
+        db_name = parts[1]  # Extract database name
+        if db_name not in db_files_map:
+            db_files_map[db_name] = []
+        db_files_map[db_name].append(file)
 
-print(db_names)
+print(f"Detected Databases: {list(db_files_map.keys())}")
 
-# Ensure a database name was detected
-if not db_names:
-    print("Error: No database name detected in staged files. Ensure files follow the structure 'DB/DatabaseName/...'.")
+if not db_files_map:
+    print("Error: No valid database files detected in staged files.")
     sys.exit(1)
-
-# Ensure only one database is detected
-if len(db_names) > 1:
-    print(f"Error: Multiple databases detected in staged files: {db_names}")
-    sys.exit(1)
-
-DB_NAME = next(iter(db_names))  # Get the single detected database
-print(f"Detected Database Name: {DB_NAME}")
 
 # Function to get the latest build version from SQL Server
-def get_latest_build_version():
+def get_latest_build_version(db_name):
     try:
         conn_str = (
             f"DRIVER={{ODBC Driver 17 for SQL Server}};"
             f"SERVER={DB_SERVER};"
-            f"DATABASE={DB_NAME};"
+            f"DATABASE={db_name};"
             f"UID={DB_USER};PWD={DB_PASSWORD};"
             if DB_USER and DB_PASSWORD else
             f"DRIVER={{ODBC Driver 17 for SQL Server}};"
             f"SERVER={DB_SERVER};"
-            f"DATABASE={DB_NAME};"
+            f"DATABASE={db_name};"
             f"Trusted_Connection=yes;"
         )
         
@@ -74,8 +69,8 @@ def get_latest_build_version():
 
         return row[0] if row else "0.0.0"
     except Exception as e:
-        print(f"Error connecting to database: {e}")
-        sys.exit(1)
+        print(f"Error connecting to database '{db_name}': {e}")
+        return "0.0.0"
 
 # Function to increment the build version
 def get_next_build_version(latest_version):
@@ -85,69 +80,66 @@ def get_next_build_version(latest_version):
         return f"{major}.{minor}.{patch + 1}"
     return "0.0.1"
 
-# Get latest and next build versions
-latest_build_version = get_latest_build_version()
-next_build_version = get_next_build_version(latest_build_version)
-
-# Define main directories
+# Define base directory for database modifications
 base_mods_folder = "db_mods"
-build_folder = os.path.join(base_mods_folder, next_build_version, DB_NAME)
-committed_changes_folder = os.path.join(build_folder, ".committed_changes")
-prod_snapshot_folder = os.path.join(build_folder, ".prod_snapshot")
 
-# Ensure main folders exist
-os.makedirs(committed_changes_folder, exist_ok=True)
-os.makedirs(prod_snapshot_folder, exist_ok=True)
+# Process each database separately
+for db_name, files in db_files_map.items():
+    # Get latest and next build versions for this database
+    latest_build_version = get_latest_build_version(db_name)
+    next_build_version = get_next_build_version(latest_build_version)
 
-# File to log committed files per database
-committed_files_log = os.path.join(build_folder, "committed_files.txt")
+    # Define paths for this database
+    build_folder = os.path.join(base_mods_folder, next_build_version, db_name)
+    committed_changes_folder = os.path.join(build_folder, ".committed_changes")
+    prod_snapshot_folder = os.path.join(build_folder, ".prod_snapshot")
+    committed_files_log = os.path.join(build_folder, "committed_files.txt")
 
-# Track committed files (without brackets) with their object type
-committed_files = []
+    # Ensure necessary folders exist
+    os.makedirs(committed_changes_folder, exist_ok=True)
+    os.makedirs(prod_snapshot_folder, exist_ok=True)
 
-# Process each staged file
-for file in staged_files:
-    if not os.path.exists(file):
-        continue  # Skip deleted files
+    # Track committed files for this database
+    committed_files = []
 
-    if not any(file.endswith(ext) for ext in allowed_extensions):
-        continue  # Skip files that don’t match allowed extensions
+    for file in files:
+        if not os.path.exists(file):
+            continue  # Skip deleted files
 
-    # Ensure the file is inside the DB/{DB_NAME} folder
-    if not file.startswith(f"DB/{DB_NAME}/"):
-        continue
+        if not any(file.endswith(ext) for ext in allowed_extensions):
+            continue  # Skip non-SQL files
 
-    # Extract relative path inside DB/{DB_NAME} structure
-    relative_path = os.path.relpath(file, f"DB/{DB_NAME}")
+        # Extract relative path inside DB/{DB_NAME}
+        relative_path = os.path.relpath(file, f"DB/{db_name}")
 
-    # Compute destination path inside committed_changes folder
-    destination = os.path.join(committed_changes_folder, relative_path)
+        # Compute destination path inside committed_changes folder
+        destination = os.path.join(committed_changes_folder, relative_path)
 
-    # Ensure subdirectories exist
-    os.makedirs(os.path.dirname(destination), exist_ok=True)
+        # Ensure subdirectories exist
+        os.makedirs(os.path.dirname(destination), exist_ok=True)
 
-    # Copy file, overwriting if it already exists
-    shutil.copy(file, destination)
-    print("Backed up:", file, "->", destination)
+        # Copy file, overwriting if it already exists
+        shutil.copy(file, destination)
+        print(f"Backed up: {file} -> {destination}")
 
-    # Extract object name without brackets
-    object_name = os.path.splitext(os.path.basename(file))[0]  # Remove .sql extension
-    object_name = object_name.replace("[", "").replace("]", "")  # Remove brackets
+        # Extract object name without brackets
+        object_name = os.path.splitext(os.path.basename(file))[0]  # Remove .sql extension
+        object_name = object_name.replace("[", "").replace("]", "")  # Remove brackets
 
-    # Extract object type from folder structure
-    path_parts = relative_path.split(os.sep)
-    object_type = path_parts[0] if len(path_parts) > 1 else "Unknown"
+        # Extract object type from folder structure
+        path_parts = relative_path.split("/")
+        object_type = path_parts[0] if len(path_parts) > 1 else "Unknown"
 
-    # Append to committed files list with timestamp
-    committed_files.append(f"[{timestamp}] {object_name} ({object_type})")
+        # Append to committed files list with timestamp
+        committed_files.append(f"[{timestamp}] {object_name} ({object_type})")
 
-# Save committed files to a log file
-if committed_files:
-    with open(committed_files_log, "a", encoding="utf-8") as log_file:  # Append mode
-        for file in committed_files:
-            log_file.write(file + "\n")  # Ensure proper line breaks
+    # Save committed files to a log file
+    if committed_files:
+        with open(committed_files_log, "a", encoding="utf-8") as log_file:  # Append mode
+            for line in committed_files:
+                log_file.write(line + "\n")
 
-    print(f"Committed files logged in: {committed_files_log}")
+        print(f"Committed files logged for {db_name}: {committed_files_log}")
 
 print("Pre-commit checks passed.")
 sys.exit(0)
