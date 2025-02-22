@@ -130,7 +130,7 @@ for db_name, files in db_files_map.items():
         object_name = object_name.replace("[", "").replace("]", "")  # Remove brackets
 
         # Extract object type from folder structure
-        path_parts = relative_path.split("/")
+        path_parts = relative_path.split(os.sep)
         object_type = path_parts[0] if len(path_parts) > 1 else "Unknown"
 
         # Append to committed files list with timestamp
